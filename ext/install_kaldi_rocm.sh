@@ -25,6 +25,19 @@ else
 fi
 
 mkdir -p "${kaldi_dir}/tools/python"
+openfst_archive="${kaldi_dir}/tools/openfst-1.8.4.tar.gz"
+openfst_source="${kaldi_dir}/tools/openfst-1.8.4"
+openfst_commit="584122adc2725cce7c75992e1272d98347a3931b"
+openfst_sha256="abf2beed0358aedf7025945e37bc7954ca50ba4f1876a102501651b3b07c0021"
+curl -fsSL --retry 3 \
+  "https://codeload.github.com/google-research/openfst/tar.gz/${openfst_commit}" \
+  -o "${openfst_archive}"
+echo "${openfst_sha256}  ${openfst_archive}" | sha256sum -c -
+mkdir -p "${openfst_source}"
+tar -xzf "${openfst_archive}" --strip-components=1 -C "${openfst_source}"
+(cd "${openfst_source}" && autoreconf --force --install)
+# Kaldi's Makefile checks this directory against the archive prerequisite.
+touch "${openfst_source}"
 make -C "${kaldi_dir}/tools" -j"${jobs}" openfst
 cd "${kaldi_dir}/src"
 ./configure --static --static-math=yes --static-fst=yes \
