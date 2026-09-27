@@ -1,0 +1,60 @@
+diff --git a/src/hip/hipify.h b/src/hip/hipify.h
+index 459372e..3a0f969 100644
+--- a/src/hip/hipify.h
++++ b/src/hip/hipify.h
+@@ -4,17 +4,4 @@
+ #ifdef __HIPCC__
+-inline __device__ void __syncwarp(unsigned mask = 0xffffffff) {
+-  // On CDNA hardware wave-fronts (warps) execute always in
+-  // lock step. Though it might still be important to signal
+-  // that the compiler can't reorder code around certain code
+-  // sections that rely on data sharing mecanisms like LDS
+-  // (shared memory). So this implements a No-op but is seen
+-  // by the compiler as having side effects.
+-  __asm__("s_nop 0");
+-
+-  // A saffest option, arguably less performant would be to use:
+-  // __asm__("s_waitcnt lgkmcnt(0)"); Í
+-  // to explicitly do a memory fence.
+-}
+ // AMDGCN only support this rounding mode.
+ #define __fdiv_rd __fdiv_rn
+ #else
+@@ -24,12 +11,12 @@ inline __device__ void __syncwarp(unsigned mask = 0xffffffff) {
+ //
+ // HIP types
+ //
+-#define CUBLAS_COMPUTE_32F HIPBLAS_R_32F
++#define CUBLAS_COMPUTE_32F HIPBLAS_COMPUTE_32F
+ #define CUBLAS_COMPUTE_32F_FAST_16F \
+-  HIPBLAS_R_32F  // TODO: Verify that plain float compute are viable
++  HIPBLAS_COMPUTE_32F_FAST_16F  // TODO: Verify that plain float compute are viable
+                  // replacements for the tensor cores alternative.
+ #define CUBLAS_COMPUTE_32F_FAST_TF32 \
+-  HIPBLAS_R_32F  // TODO: Verify that plain float compute are viable
++  HIPBLAS_COMPUTE_32F_FAST_TF32  // TODO: Verify that plain float compute are viable
+                  // replacements for the tensor cores alternative.
+ #define CUBLAS_DIAG_NON_UNIT HIPBLAS_DIAG_NON_UNIT
+ #define CUBLAS_FILL_MODE_LOWER HIPBLAS_FILL_MODE_LOWER
+@@ -98,7 +85,7 @@
+ #define CUSPARSE_STATUS_ZERO_PIVOT HIPSPARSE_STATUS_ZERO_PIVOT
+ #define cuDeviceGetName hipDeviceGetName
+ #define cuMemGetInfo_v2 hipMemGetInfo
+-#define cublasComputeType_t hipblasDatatype_t
++#define cublasComputeType_t hipblasComputeType_t
+ #define cublasCreate hipblasCreate
+ #define cublasDasum_v2 hipblasDasum
+ #define cublasDaxpy_v2 hipblasDaxpy
+diff --git a/src/makefiles/default_rules.mk b/src/makefiles/default_rules.mk
+index 21a3b05..cd11750 100644
+--- a/src/makefiles/default_rules.mk
++++ b/src/makefiles/default_rules.mk
+@@ -153,7 +153,7 @@ ifeq ($(CUDA), true)
+ NVCC_DEP_COMMAND = $(CUDATKDIR)/bin/nvcc -M $(CUDA_FLAGS) $(CUDA_INCLUDE) $(CUDA_SRCS)
+ endif
+ ifeq ($(ROCM), true)
+-HIPCC_DEP_COMMAND = $(HIPCC) -M $(ROCM_FLAGS) $(ROCM_INCLUDE) $(CUDA_SRCS)
++HIPCC_DEP_COMMAND = $(HIPCC) -M $(ROCM_FLAGS) $(ROCM_ARCH_FLAGS) $(ROCM_INCLUDE) $(CUDA_SRCS)
+ endif
+ endif
+ endif

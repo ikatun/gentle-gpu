@@ -1,5 +1,6 @@
 import math
 import logging
+import os
 import wave
 
 from gentle import transcription
@@ -8,6 +9,10 @@ from multiprocessing.pool import ThreadPool as Pool
 
 class MultiThreadedTranscriber:
     def __init__(self, kaldi_queue, chunk_len=20, overlap_t=2, nthreads=4):
+        chunk_len = int(os.environ.get("GENTLE_CHUNK_LEN", chunk_len))
+        overlap_t = int(os.environ.get("GENTLE_CHUNK_OVERLAP", overlap_t))
+        if chunk_len <= 0 or overlap_t < 0 or overlap_t >= chunk_len:
+            raise ValueError("chunk length must be positive and overlap in [0, chunk length)")
         self.chunk_len = chunk_len
         self.overlap_t = overlap_t
         self.nthreads = nthreads
@@ -111,4 +116,3 @@ if __name__=='__main__':
         words, duration = trans.transcribe(filename)
 
     open(sys.argv[2], 'w').write(transcription.Transcription(words=words).to_json())
-

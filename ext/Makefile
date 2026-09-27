@@ -8,7 +8,7 @@ BINFILES = k3 m3
 
 OBJFILES = 
 
-CXXFLAGS += -I$(KALDI_BASE) -O3 -DNDEBUG
+CXXFLAGS += -I$(KALDI_BASE) -I$(KALDI_BASE)hip -O3 -DNDEBUG
 
 ADDLIBS = $(KALDI_BASE)online2/kaldi-online2.a $(KALDI_BASE)ivector/kaldi-ivector.a \
           $(KALDI_BASE)nnet3/kaldi-nnet3.a $(KALDI_BASE)chain/kaldi-chain.a \
@@ -23,6 +23,10 @@ ifeq ($(CUDA), true)
     LDFLAGS += $(CUDA_LDFLAGS)
     LDLIBS += $(CUDA_LDLIBS)
     $(info cuda libraries: $(CUDA_LDFLAGS) $(CUDA_LDLIBS))
+else ifeq ($(ROCM), true)
+    LDFLAGS += $(CUDA_LDFLAGS)
+    LDLIBS += $(CUDA_LDLIBS)
+    $(info ROCm libraries: $(CUDA_LDFLAGS) $(CUDA_LDLIBS))
 else
     $(info Not building with cuda!!!)
 endif

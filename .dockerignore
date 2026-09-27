@@ -1,0 +1,13 @@
+.git
+.github
+**/__pycache__
+**/*.pyc
+**/*.swp
+**/*~
+data
+webdata
+experiment-results
+monitor_*.py
+profile_*.py
+run_*.py
+summarize_*.py

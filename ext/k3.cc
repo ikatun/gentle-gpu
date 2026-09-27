@@ -10,6 +10,7 @@
 #include "lat/lattice-functions-transition-model.h"
 #include "lat/word-align-lattice.h"
 #include "nnet3/decodable-simple-looped.h"
+#include <cstdlib>
 
 #ifdef HAVE_CUDA
 #include "cudamatrix/cu-device.h"
@@ -95,18 +96,29 @@ int main(int argc, char *argv[]) {
     }
 
 #ifdef HAVE_CUDA
-    fprintf(stdout, "Cuda enabled\n");
+    fprintf(stderr, "ROCm/CUDA-compatible GPU acceleration enabled\n");
+    // Separate Gentle workers share one GPU. Let deployments optionally cap
+    // Kaldi's allocator reservation when running several requests at once.
+    if (const char *fraction = std::getenv("GENTLE_GPU_MEMORY_PROPORTION")) {
+      char *end = NULL;
+      double value = std::strtod(fraction, &end);
+      if (end == fraction || *end != '\0' || !(value >= 0.05 && value < 0.99)) {
+        fprintf(stderr, "Invalid GENTLE_GPU_MEMORY_PROPORTION (expected 0.05 <= value < 0.99)\n");
+        return EXIT_FAILURE;
+      }
+      g_allocator_options.memory_proportion = value;
+      fprintf(stderr, "GPU allocator memory proportion: %.3f\n", value);
+    }
     CuDevice &cu_device = CuDevice::Instantiate();
-    cu_device.SetVerbose(true);
     cu_device.SelectGpuId("yes");
-    fprintf(stdout, "active gpu: %d\n", cu_device.ActiveGpuId());
+    fprintf(stderr, "GPU selected: %s\n", cu_device.Enabled() ? "yes" : "no");
 #endif
     const std::string ivector_model_dir = nnet_dir + "/ivector_extractor";
     const std::string nnet3_rxfilename = nnet_dir + "/final.mdl";
 
     const std::string word_syms_rxfilename = graph_dir + "/words.txt";
-    const string word_boundary_filename = graph_dir + "/phones/word_boundary.int";
-    const string phone_syms_rxfilename = graph_dir + "/phones.txt";
+    const std::string word_boundary_filename = graph_dir + "/phones/word_boundary.int";
+    const std::string phone_syms_rxfilename = graph_dir + "/phones.txt";
 
     WordBoundaryInfoNewOpts opts; // use default opts
     WordBoundaryInfo word_boundary_info(opts, word_boundary_filename);
@@ -132,6 +144,16 @@ int main(int argc, char *argv[]) {
 
     nnet3::NnetSimpleLoopedComputationOptions nnet_simple_looped_opts;
     nnet_simple_looped_opts.acoustic_scale = 1.0; // changed from 0.1?
+    if (const char *frames = std::getenv("GENTLE_FRAMES_PER_CHUNK")) {
+      char *end = NULL;
+      long value = std::strtol(frames, &end, 10);
+      if (end == frames || *end != '\0' || value < 1 || value > 10000) {
+        fprintf(stderr, "Invalid GENTLE_FRAMES_PER_CHUNK (expected 1..10000)\n");
+        return EXIT_FAILURE;
+      }
+      nnet_simple_looped_opts.frames_per_chunk = static_cast<int32>(value);
+      fprintf(stderr, "Neural inference frames per chunk: %ld\n", value);
+    }
 
     nnet3::DecodableNnetSimpleLoopedInfo de_nnet_simple_looped_info(nnet_simple_looped_opts, &am_nnet);
 

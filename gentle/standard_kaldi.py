@@ -7,7 +7,8 @@ from .util.paths import get_binary
 EXECUTABLE_PATH = get_binary("ext/k3")
 logger = logging.getLogger(__name__)
 
-STDERR = subprocess.DEVNULL
+# Keep the ROCm backend's device selection diagnostics visible in container logs.
+STDERR = None
 
 class Kaldi:
     def __init__(self, nnet_dir=None, hclg_path=None, proto_langdir=None):
